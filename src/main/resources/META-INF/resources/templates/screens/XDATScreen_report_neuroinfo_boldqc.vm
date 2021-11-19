@@ -1,0 +1,1068 @@
+#set($dtype = $!item.getXSIType())
+#set($mr_label = $!item.getStringProperty("${dtype}/session_label"))
+#set($mr_id = $!item.getStringProperty("${dtype}/imageSession_ID"))
+#set($aid = $!item.getStringProperty("${dtype}.ID"))
+#set($project = $!item.getStringProperty("${dtype}/project"))
+#set ($floatFormat3 = '0.###')
+#macro (numberFormat $format $number)
+    #set ($d = $item.getClass().forName('java.text.DecimalFormat').newInstance())
+    $d.applyPattern($format)
+    $d.format($number)
+#end
+
+#set($auto_report = $content.getURI("/data/experiments/$!{mr_id}/assessors/$!{aid}/files/auto-report/$!{aid}_auto_report.txt"))
+#set($mask_image = $content.getURI("/data/experiments/$!{mr_id}/assessors/$!{aid}/files/mask-image/$!{aid}_mask_thumbnail.png"))
+#set($mask_nifti = $content.getURI("/data/experiments/$!{mr_id}/assessors/$!{aid}/files/mask-nifti/$!{aid}_mask.nii.gz"))
+#set($mean_image = $content.getURI("/data/experiments/$!{mr_id}/assessors/$!{aid}/files/mean-image/$!{aid}_mean_thumbnail.png"))
+#set($mean_nifti = $content.getURI("/data/experiments/$!{mr_id}/assessors/$!{aid}/files/mean-nifti/$!{aid}_mean.nii.gz"))
+#set($mean_slice_data = $content.getURI("/data/experiments/$!{mr_id}/assessors/$!{aid}/files/mean-slice-data/$!{aid}_mean_slice.txt"))
+#set($mean_slice_image = $content.getURI("/data/experiments/$!{mr_id}/assessors/$!{aid}/files/mean-slice-image/$!{aid}_mean_slice.png"))
+#set($motion_image = $content.getURI("/data/experiments/$!{mr_id}/assessors/$!{aid}/files/motion-image/$!{aid}_motion.png"))
+#set($slice_report = $content.getURI("/data/experiments/$!{mr_id}/assessors/$!{aid}/files/slice-report/$!{aid}_slice_report.txt"))
+#set($slope_image = $content.getURI("/data/experiments/$!{mr_id}/assessors/$!{aid}/files/slope-image/$!{aid}_slope_thumbnail.png"))
+#set($slope_nifti = $content.getURI("/data/experiments/$!{mr_id}/assessors/$!{aid}/files/slope-nifti/$!{aid}_slope.nii.gz"))
+#set($snr_image = $content.getURI("/data/experiments/$!{mr_id}/assessors/$!{aid}/files/snr-image/$!{aid}_snr_thumbnail.png"))
+#set($snr_nifti = $content.getURI("/data/experiments/$!{mr_id}/assessors/$!{aid}/files/snr-nifti/$!{aid}_snr.nii.gz"))
+#set($stdev_image = $content.getURI("/data/experiments/$!{mr_id}/assessors/$!{aid}/files/stdev-image/$!{aid}_stdev_thumbnail.png"))
+#set($stdev_nifti = $content.getURI("/data/experiments/$!{mr_id}/assessors/$!{aid}/files/stdev-nifti/$!{aid}_stdev.nii.gz"))
+
+#set($manual_motion = $!item.getProperty("manual/motion"))
+#set($manual_cover = $!item.getProperty("manual/cover"))
+#set($manual_inhom = $!item.getProperty("manual/inhom"))
+#set($manual_ghost_brain = $!item.getProperty("manual/ghost_brain"))
+#set($manual_ghost_out = $!item.getProperty("manual/ghost_out"))
+#set($manual_spike = $!item.getProperty("manual/spike"))
+#set($manual_overall = $!item.getProperty("manual/overall"))
+#set($manual_comments = $!item.getProperty("manual/comments"))
+
+<script type="text/javascript">
+  $( function() {
+    /**
+     * Turn HTML elements into jQuery UI elements
+     */
+    $( "#tabs" ).tabs();
+    $( "#menu" ).menu();
+
+    /**
+     * Populate Manual QC tab with previously saved data
+     */
+    switch("$!{manual_motion}") {
+      case "Good": 
+        $( "#motion-good" ).attr("checked", "checked");
+        break;
+      case "Questionable":
+        $( "#motion-questionable" ).attr("checked", "checked");
+        break;
+      case "Bad":
+        $( "#motion-bad" ).attr("checked", "checked");
+        break;
+      default:
+        break;
+    }
+
+    switch("$!{manual_cover}") {
+      case "Good": 
+        $( "#cover-good" ).attr("checked", "checked");
+        break;
+      case "Questionable":
+        $( "#cover-questionable" ).attr("checked", "checked");
+        break;
+      case "Bad":
+        $( "#cover-bad" ).attr("checked", "checked");
+        break;
+      default:
+        break;
+    }
+
+    switch("$!{manual_inhom}") {
+      case "None": 
+        $( "#inhom-none" ).attr("checked", "checked");
+        break;
+      case "Expected":
+        $( "#inhom-expected" ).attr("checked", "checked");
+        break;
+      case "Moderate":
+        $( "#inhom-moderate" ).attr("checked", "checked");
+        break;
+      case "Severe":
+        $( "#inhom-severe" ).attr("checked", "checked");
+        break;
+      default:
+        break;
+    }
+
+    switch("$!{manual_ghost_brain}") {
+      case "None": 
+        $( "#ghost_brain-none" ).attr("checked", "checked");
+        break;
+      case "Mild":
+        $( "#ghost_brain-mild" ).attr("checked", "checked");
+        break;
+      case "Moderate":
+        $( "#ghost_brain-moderate" ).attr("checked", "checked");
+        break;
+      case "Severe":
+        $( "#ghost_brain-severe" ).attr("checked", "checked");
+        break;
+      default:
+        break;
+    }
+
+    switch("$!{manual_ghost_out}") {
+      case "None": 
+        $( "#ghost_out-none" ).attr("checked", "checked");
+        break;
+      case "Mild":
+        $( "#ghost_out-mild" ).attr("checked", "checked");
+        break;
+      case "Moderate":
+        $( "#ghost_out-moderate" ).attr("checked", "checked");
+        break;
+      case "Severe":
+        $( "#ghost_out-severe" ).attr("checked", "checked");
+        break;
+      default:
+        break;
+    }
+
+    switch("$!{manual_spike}") {
+      case "None": 
+        $( "#spike-none" ).attr("checked", "checked");
+        break;
+      case "Mild":
+        $( "#spike-mild" ).attr("checked", "checked");
+        break;
+      case "Moderate":
+        $( "#spike-moderate" ).attr("checked", "checked");
+        break;
+      case "Severe":
+        $( "#spike-severe" ).attr("checked", "checked");
+        break;
+      default:
+        break;
+    }
+
+    switch("$!{manual_overall}") {
+      case "PASS": 
+        $( "#overall-pass" ).attr("checked", "checked");
+        break;
+      case "WARN":
+        $( "#overall-warn" ).attr("checked", "checked");
+        break;
+      case "FAIL":
+        $( "#overall-fail" ).attr("checked", "checked");
+        break;
+      default:
+        break;
+    }
+
+    /**
+     * Save button click event
+     */
+    $( "#manualqc_save").click( function(event) {
+      var motion = $( "input[name='motion']:checked" ).val();
+      var cover = $( "input[name='cover']:checked" ).val();
+      var inhom = $( "input[name='inhom']:checked" ).val();
+      var ghost_brain = $( "input[name='ghost_brain']:checked" ).val();
+      var ghost_out = $( "input[name='ghost_out']:checked" ).val();
+      var spike = $( "input[name='spike']:checked" ).val();
+      var overall = $( "input[name='overall']:checked" ).val();
+      var comments = $( "#comments" ).val();
+      var url = "/data/experiments/$!{mr_id}/assessors/$!{aid}"
+      var data = {
+        "neuroinfo:boldqc/manual/motion": motion,
+        "neuroinfo:boldqc/manual/cover": cover,
+        "neuroinfo:boldqc/manual/inhom": inhom,
+        "neuroinfo:boldqc/manual/ghost_brain": ghost_brain,
+        "neuroinfo:boldqc/manual/ghost_out": ghost_out,
+        "neuroinfo:boldqc/manual/spike": spike,
+        "neuroinfo:boldqc/manual/overall": overall,
+        "neuroinfo:boldqc/manual/comments": comments,
+        "XNAT_CSRF": csrfToken
+      }
+      $.ajax({
+        url: url + "?" + $.param(data),
+        type: "put",
+        beforeSend: function(xhr) {
+          $( "#manualqc_save" ).val("Saving").button({
+            disabled: true
+          });
+        },
+        success: function(response) {
+          $( "#manualqc_save" ).val("Saved");
+        },
+        error: function(xhr) {
+          $( "#manualqc_save" ).val("Error");
+        }
+      });
+    });
+  });
+</script>
+
+<style>
+  .image-box {
+    border: 1px solid #ececec;
+    padding: 4px;
+  }
+
+  .pane {
+    background-color: #fff;
+    border: 1px solid grey;
+    padding: 4px;
+    font-size: 11px;
+    vertical-align: top;
+  }
+
+  .big-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .big-table td {
+    border-bottom: 1px solid #cccccc;
+    padding: 4px;
+    text-align: left;
+  }
+
+  .big-table th {
+    background-color: #f6f6f6;
+    position: sticky;
+    top: 0;
+    padding: 5px;
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4);
+  }
+
+  .bigtable-key {
+    width: 1%;
+  }
+
+  .big-table tr:nth-child(odd) {
+    
+  }
+
+  .big-table tr:hover {
+    background-color: #cccccc;
+  }
+
+  .sidebox {
+    border-collapse: collapse;
+    width: 100%;
+    border: 1px solid #bfbfbf;
+  }
+
+  .sidebox th {
+    align: left;
+    background-color: #cccccc;
+    padding: 1px;
+  }
+
+  .sidebox tr:nth-child(odd) {
+    background-color: #f6f6f6;
+  }
+
+  .sidebox td { 
+    padding-left: 3px;
+    padding-right: 3px;
+  }
+
+  .sidebox tr:hover {
+    background-color: #cccccc;
+  }
+
+  .morph-bar {
+    border-right: 2px solid #cc00cc;
+    padding-right: 4px;
+  }
+  
+  .mriqc-bar {
+    border-right: 2px solid #00e6bf;
+    padding-right: 4px;
+  }
+
+  .tile-img {
+    height: 230px;
+  }
+
+  .ui-menu { width: 65px; }
+  .ui-tabs-panel {
+    height: 683px;
+    overflow-y: auto;
+  }
+</style>
+
+<!-- border container -->
+<table style="width: 100%; height: 683px">
+  <!-- menu bar -->
+  <tr id="menu-bar">
+    <td class="pane" colspan="2">
+      <div style="margin: 2px">
+        <ul id="menu">
+          <li><div>Action</div>
+            <ul>
+              <li><div><a href=$content.getURI("/data/experiments/$!{mr_id}/assessors/$!{aid}?format=xml")>View XML</a></div></li>
+              <li><div><a href="$!{delete_url}">Delete</a></div></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </td>
+  </tr>
+  <!-- side pane -->
+  <tr id="side-pane">
+    <td class="pane" style="width: 220px">
+      <div style="margin: 2px">
+        <!-- Summary table -->
+        <table class="sidebox">
+          <th colspan="2">Summary</th>
+          <tr><td>MR Session</td><td align="right"><a href="/data/experiments/$!{mr_id}?format=html">$!{mr_label}</a></td></tr>
+          <tr><td>Processed</td><td align="right">$!item.getStringProperty("${dtype}/date")</td></tr>
+          <tr><td>BOLD scan</td><td align="right">$!item.getStringProperty("${dtype}/bold_scan_id")</td></tr>
+        </table>
+        <br />
+        <!-- Parameters table -->
+        <table class="sidebox">
+          <th colspan="2">Parameters</th>
+          <tr><td>Num Volumes:</td><td align="right">$!item.getProperty("N_Vols")</td></tr>
+          <tr><td>Num Voxels:</td><td align="right">$!item.getProperty("qc_nVox")</td></tr>
+          <tr><td>Mask Threshold:</td><td align="right">#numberFormat($floatFormat3 $!item.getProperty("qc_thresh"))</td></tr>
+          <tr><td>Skip:</td><td align="right">$!item.getProperty("Skip")</td></tr>
+        </table>
+        <!-- QC Metrics table -->
+        <table class="sidebox">
+          <th colspan="2">QC Metrics</th>
+          <tr><td>Mean:</td><td align="right">#numberFormat($floatFormat3 $!item.getProperty("qc_Mean"))</td></tr>
+          <tr><td>StDev:</td><td align="right">#numberFormat($floatFormat3 $!item.getProperty("qc_Stdev"))</td></tr>
+          <tr><td><b>Slice SNR:</b></td><td align="right"><b>#numberFormat($floatFormat3 $!item.getProperty("qc_sSNR"))</b></td></tr>
+          <tr><td><b>Voxel SNR:</b></td><td align="right"><b>#numberFormat($floatFormat3 $!item.getProperty("qc_vSNR"))</b></td></tr>
+          <tr><td>Mean Rel Motion:</td><td align="right">#numberFormat($floatFormat3 $!item.getProperty("mot_rel_xyz_mean"))</td></tr>
+          <tr><td>Max Rel Motion:</td><td align="right">#numberFormat($floatFormat3 $!item.getProperty("mot_rel_xyz_max"))</td></tr>
+          <tr><td>Mean Abs Motion:</td><td align="right">#numberFormat($floatFormat3 $!item.getProperty("mot_abs_xyz_mean"))</td></tr>
+          <tr><td>Max Abs Motion:</td><td align="right">#numberFormat($floatFormat3 $!item.getProperty("mot_abs_xyz_max"))</td></tr>
+          <tr><td>Movements (>.1mm):</td><td align="right">#numberFormat($floatFormat3 $!item.getProperty("mot_rel_xyz_1mm"))</td></tr>
+          <tr><td>Movements (>.5mm):</td><td align="right">#numberFormat($floatFormat3 $!item.getProperty("mot_rel_xyz_5mm"))</td></tr>
+        </table>
+        <table class="sidebox">
+          <th colspan="2">Files</th>
+          <tr><td></td><td><a href="#" data-featherlight="$!{snr_image}">SNR Image</a></td></tr>
+          <tr><td></td><td><a href="#" data-featherlight="$!{mean_image}">Mean Image</a></td></tr>
+          <tr><td></td><td><a href="#" data-featherlight="$!{stdev_image}">StDev Image</a></td></tr>
+          <tr><td></td><td><a href="#" data-featherlight="$!{mask_image}">Mask Image</a></td></tr>
+          <tr><td></td><td><a href="#" data-featherlight="$!{mean_slice_image}">Mean Slice Image</a></td></tr>
+          <tr><td></td><td><a href="#" data-featherlight="$!{motion_image}">Motion Data</a></td></tr>
+          <tr><td></td><td><a href="#" data-featherlight="$!{slope_image}">Slope Image</a></td></tr>
+          <tr><td></td><td><a target="_blank" href="$!{auto_report}">Auto QC Report</a></td></tr>
+          <tr><td></td><td><a target="_blank" href="$!{slice_report}">Slice Report</a></td></tr>
+        </table>
+      </div>
+    </td>
+    <!-- tabs pane -->
+    <td id="tabs-pane" class="pane" style="vertical-align: top">
+      <div id="tabs">
+        <ul>
+          <li><a href="#images-tab">Images</a></li>
+          <li><a href="#auto-qc-tab">Automated QC</a></li>
+          <li><a href="#manualqc-tab">Manual QC</a></li>
+          <li><a href="#files-tab">All Stored Files</a></li>
+        </ul>
+        <!-- begin images-tab -->
+        <div id="images-tab" style="padding:0px; margin:2px">
+          <table id="anatqc-images-table" cellspacing="10">
+            <tr>
+              <td>
+                <table class="image-box">
+                  <tr>
+                    <td align="left">Signal-to-Noise Ratio (SNR)</td>
+                  </tr>
+                  <tr>
+                    <td colspan="2"><a href="#" data-featherlight="$!{snr_image}"><img class="tile-img" src="$!{snr_image}"></img></a></td>
+                  </tr>
+                </table>
+              </td>
+              <td>
+                <table class="image-box">
+                  <tr>
+                    <td align="left">Mean</td>
+                  </tr>
+                  <tr>
+                    <td colspan="2"><a href="#" data-featherlight="$!{mean_image}"><img class="tile-img" src="$!{mean_image}"></img></a></td>
+                  </tr>
+                </table>
+              </td>
+              <td>
+                <table class="image-box">
+                  <tr>
+                    <td align="left">Standard Deviation (StDev)</td>
+                  </tr>
+                  <tr>
+                    <td colspan="2"><a href="#" data-featherlight="$!{stdev_image}"><img class="tile-img" src="$!{stdev_image}"></img></a></td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <table class="image-box">
+                  <tr>
+                    <td align="left">Slope</td>
+                  </tr>
+                  <tr>
+                    <td colspan="2"><a href="#" data-featherlight="$!{slope_image}"><img class="tile-img" src="$!{slope_image}"></img></a></td>
+                  </tr>
+                </table>
+              </td>
+              <td>
+                <table class="image-box">
+                  <tr>
+                    <td align="left">Mean Slice Intensity Over Time</td>
+                  </tr>
+                  <tr>
+                    <td colspan="2"><a href="#" data-featherlight="$!{mean_slice_image}"><img class="tile-img" src="$!{mean_slice_image}"></img></a></td>
+                  </tr>
+                </table>
+              </td>
+              <td>
+                <table class="image-box">
+                  <tr>
+                    <td align="left">Motion Over Time</td>
+                  </tr>
+                  <tr>
+                    <td colspan="2"><a href="#" data-featherlight="$!{motion_image}"><img class="tile-img" src="$!{motion_image}"></img></a></td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <table class="image-box">
+                  <tr>
+                    <td align="left">Mask</td>
+                  </tr>
+                  <tr>
+                    <td colspan="2"><a href="#" data-featherlight="$!{mask_image}"><img class="tile-img" src="$!{mask_image}"></img></a></td>
+                  </tr>
+                </table>
+              </td>
+              <td><!-- additional image here --></td>
+              <td><!-- additional image here --></td>
+            </tr>
+          </table>
+        </div>
+        <!-- end images-tab -->
+        <!-- begin auto-qc-tab -->
+        <div id="auto-qc-tab" style="padding: 0px; margin:2px">
+          <table class="big-table">
+            <tr>
+              <th align="left">#</th>
+              <th align="left">Metric</th>
+              <th align="left">Value</th>
+            </tr>
+            <tr>
+              <td>1</td>
+              <td>N_Vols</td>
+              <td>$!item.getProperty("N_Vols")</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>Skip</td>
+              <td>$!item.getProperty("Skip")</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>qc_N_Tps</td>
+              <td>$!item.getProperty("qc_N_Tps")</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>qc_thresh</td>
+              <td>$!item.getProperty("qc_thresh")</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td>qc_nVox</td>
+              <td>$!item.getProperty("qc_nVox")</td>
+            </tr>
+            <tr>
+              <td>6</td>
+              <td>qc_Mean</td>
+              <td>$!item.getProperty("qc_Mean")</td>
+            </tr>
+            <tr>
+              <td>7</td>
+              <td>qc_Max</td>
+              <td>$!item.getProperty("qc_Max")</td>
+            </tr>
+            <tr>
+              <td>8</td>
+              <td>qc_Min</td>
+              <td>$!item.getProperty("qc_Min")</td>
+            </tr>
+            <tr>
+              <td>9</td>
+              <td>qc_Stdev</td>
+              <td>$!item.getProperty("qc_Stdev")</td>
+            </tr>
+            <tr>
+              <td>10</td>
+              <td>qc_sSNR</td>
+              <td>$!item.getProperty("qc_sSNR")</td>
+            </tr>
+            <tr>
+              <td>11</td>
+              <td>qc_vSNR</td>
+              <td>$!item.getProperty("qc_vSNR")</td>
+            </tr>
+            <tr>
+              <td>12</td>
+              <td>qc_slope</td>
+              <td>$!item.getProperty("qc_slope")</td>
+            </tr>
+            <tr>
+              <td>13</td>
+              <td>mot_N_Tps</td>
+              <td>$!item.getProperty("mot_N_Tps")</td>
+            </tr>
+            <tr>
+              <td>14</td>
+              <td>mot_rel_x_mean</td>
+              <td>$!item.getProperty("mot_rel_x_mean")</td>
+            </tr>
+            <tr>
+              <td>15</td>
+              <td>mot_rel_x_sd</td>
+              <td>$!item.getProperty("mot_rel_x_sd")</td>
+            </tr>
+            <tr>
+              <td>16</td>
+              <td>mot_rel_x_max</td>
+              <td>$!item.getProperty("mot_rel_x_max")</td>
+            </tr>
+            <tr>
+              <td>17</td>
+              <td>mot_rel_x_1mm</td>
+              <td>$!item.getProperty("mot_rel_x_1mm")</td>
+            </tr>
+            <tr>
+              <td>18</td>
+              <td>mot_rel_x_5mm</td>
+              <td>$!item.getProperty("mot_rel_x_5mm")</td>
+            </tr>
+            <tr>
+              <td>19</td>
+              <td>mot_rel_y_mean</td>
+              <td>$!item.getProperty("mot_rel_y_mean")</td>
+            </tr>
+            <tr>
+              <td>20</td>
+              <td>mot_rel_y_sd</td>
+              <td>$!item.getProperty("mot_rel_y_sd")</td>
+            </tr>
+            <tr>
+              <td>21</td>
+              <td>mot_rel_y_max</td>
+              <td>$!item.getProperty("mot_rel_y_max")</td>
+            </tr>
+            <tr>
+              <td>22</td>
+              <td>mot_rel_y_1mm</td>
+              <td>$!item.getProperty("mot_rel_y_1mm")</td>
+            </tr>
+            <tr>
+              <td>23</td>
+              <td>mot_rel_y_5mm</td>
+              <td>$!item.getProperty("mot_rel_y_5mm")</td>
+            </tr>
+            <tr>
+              <td>24</td>
+              <td>mot_rel_z_mean</td>
+              <td>$!item.getProperty("mot_rel_z_mean")</td>
+            </tr>
+            <tr>
+              <td>25</td>
+              <td>mot_rel_z_sd</td>
+              <td>$!item.getProperty("mot_rel_z_sd")</td>
+            </tr>
+            <tr>
+              <td>26</td>
+              <td>mot_rel_z_max</td>
+              <td>$!item.getProperty("mot_rel_z_max")</td>
+            </tr>
+            <tr>
+              <td>27</td>
+              <td>mot_rel_z_1mm</td>
+              <td>$!item.getProperty("mot_rel_z_1mm")</td>
+            </tr>
+            <tr>
+              <td>28</td>
+              <td>mot_rel_z_5mm</td>
+              <td>$!item.getProperty("mot_rel_z_5mm")</td>
+            </tr>
+            <tr>
+              <td>29</td>
+              <td>mot_rel_xyz_mean</td>
+              <td>$!item.getProperty("mot_rel_xyz_mean")</td>
+            </tr>
+            <tr>
+              <td>30</td>
+              <td>mot_rel_xyz_sd</td>
+              <td>$!item.getProperty("mot_rel_xyz_sd")</td>
+            </tr>
+            <tr>
+              <td>31</td>
+              <td>mot_rel_xyz_max</td>
+              <td>$!item.getProperty("mot_rel_xyz_max")</td>
+            </tr>
+            <tr>
+              <td>32</td>
+              <td>mot_rel_xyz_1mm</td>
+              <td>$!item.getProperty("mot_rel_xyz_1mm")</td>
+            </tr>
+            <tr>
+              <td>33</td>
+              <td>mot_rel_xyz_5mm</td>
+              <td>$!item.getProperty("mot_rel_xyz_5mm")</td>
+            </tr>
+            <tr>
+              <td>34</td>
+              <td>rot_rel_x_mean</td>
+              <td>$!item.getProperty("rot_rel_x_mean")</td>
+            </tr>
+            <tr>
+              <td>35</td>
+              <td>rot_rel_x_sd</td>
+              <td>$!item.getProperty("rot_rel_x_sd")</td>
+            </tr>
+            <tr>
+              <td>36</td>
+              <td>rot_rel_x_max</td>
+              <td>$!item.getProperty("rot_rel_x_max")</td>
+            </tr>
+            <tr>
+              <td>37</td>
+              <td>rot_rel_y_mean</td>
+              <td>$!item.getProperty("rot_rel_y_mean")</td>
+            </tr>
+            <tr>
+              <td>38</td>
+              <td>rot_rel_y_sd</td>
+              <td>$!item.getProperty("rot_rel_y_sd")</td>
+            </tr>
+            <tr>
+              <td>39</td>
+              <td>rot_rel_y_max</td>
+              <td>$!item.getProperty("rot_rel_y_max")</td>
+            </tr>
+            <tr>
+              <td>40</td>
+              <td>rot_rel_z_mean</td>
+              <td>$!item.getProperty("rot_rel_z_mean")</td>
+            </tr>
+            <tr>
+              <td>41</td>
+              <td>rot_rel_z_sd</td>
+              <td>$!item.getProperty("rot_rel_z_sd")</td>
+            </tr>
+            <tr>
+              <td>42</td>
+              <td>rot_rel_z_max</td>
+              <td>$!item.getProperty("rot_rel_z_max")</td>
+            </tr>
+            <tr>
+              <td>43</td>
+              <td>mot_abs_x_mean</td>
+              <td>$!item.getProperty("mot_abs_x_mean")</td>
+            </tr>
+            <tr>
+              <td>44</td>
+              <td>mot_abs_x_sd</td>
+              <td>$!item.getProperty("mot_abs_x_sd")</td>
+            </tr>
+            <tr>
+              <td>45</td>
+              <td>mot_abs_x_max</td>
+              <td>$!item.getProperty("mot_abs_x_max")</td>
+            </tr>
+            <tr>
+              <td>46</td>
+              <td>mot_abs_y_mean</td>
+              <td>$!item.getProperty("mot_abs_y_mean")</td>
+            </tr>
+            <tr>
+              <td>47</td>
+              <td>mot_abs_y_sd</td>
+              <td>$!item.getProperty("mot_abs_y_sd")</td>
+            </tr>
+            <tr>
+              <td>48</td>
+              <td>mot_abs_y_max</td>
+              <td>$!item.getProperty("mot_abs_y_max")</td>
+            </tr>
+            <tr>
+              <td>49</td>
+              <td>mot_abs_z_mean</td>
+              <td>$!item.getProperty("mot_abs_z_mean")</td>
+            </tr>
+            <tr>
+              <td>50</td>
+              <td>mot_abs_z_sd</td>
+              <td>$!item.getProperty("mot_abs_z_sd")</td>
+            </tr>
+            <tr>
+              <td>51</td>
+              <td>mot_abs_z_max</td>
+              <td>$!item.getProperty("mot_abs_z_max")</td>
+            </tr>
+            <tr>
+              <td>52</td>
+              <td>mot_abs_xyz_mean</td>
+              <td>$!item.getProperty("mot_abs_xyz_mean")</td>
+            </tr>
+            <tr>
+              <td>53</td>
+              <td>mot_abs_xyz_sd</td>
+              <td>$!item.getProperty("mot_abs_xyz_sd")</td>
+            </tr>
+            <tr>
+              <td>54</td>
+              <td>mot_abs_xyz_max</td>
+              <td>$!item.getProperty("mot_abs_xyz_max")</td>
+            </tr>
+            <tr>
+              <td>55</td>
+              <td>rot_abs_x_mean</td>
+              <td>$!item.getProperty("rot_abs_x_mean")</td>
+            </tr>
+            <tr>
+              <td>56</td>
+              <td>rot_abs_x_sd</td>
+              <td>$!item.getProperty("rot_abs_x_sd")</td>
+            </tr>
+            <tr>
+              <td>57</td>
+              <td>rot_abs_x_max</td>
+              <td>$!item.getProperty("rot_abs_x_max")</td>
+            </tr>
+            <tr>
+              <td>58</td>
+              <td>rot_abs_y_mean</td>
+              <td>$!item.getProperty("rot_abs_y_mean")</td>
+            </tr>
+            <tr>
+              <td>59</td>
+              <td>rot_abs_y_sd</td>
+              <td>$!item.getProperty("rot_abs_y_sd")</td>
+            </tr>
+            <tr>
+              <td>60</td>
+              <td>rot_abs_y_max</td>
+              <td>$!item.getProperty("rot_abs_y_max")</td>
+            </tr>
+            <tr>
+              <td>61</td>
+              <td>rot_abs_z_mean</td>
+              <td>$!item.getProperty("rot_abs_z_mean")</td>
+            </tr>
+            <tr>
+              <td>62</td>
+              <td>rot_abs_z_sd</td>
+              <td>$!item.getProperty("rot_abs_z_sd")</td>
+            </tr>
+            <tr>
+              <td>63</td>
+              <td>rot_abs_z_max</td>
+              <td>$!item.getProperty("rot_abs_z_max")</td>
+            </tr>
+          </table>
+        </div>
+        <!-- end auto-qc-tab -->
+        <!-- begin manualqc-tab -->
+        <div id="manualqc-tab" style="padding:0px; margin:0px">
+          <table>
+            <tr>
+              <td>
+                <h2>Motion</h2>
+                <hr style="border: 5px solid #e4efff"/>
+                <table>
+                  <tr>
+                    <td><input type="radio" name="motion" id="motion-good" value="Good"></td>
+                    <td>Good</td>
+                  </tr>
+                  <tr>
+                    <td><input type="radio" name="motion" id="motion-questionable" value="Questionable"></td>
+                    <td>Questionable</td>
+                  </tr>
+                  <tr>
+                    <td><input type="radio" name="motion" id="motion-bad" value="Bad"></td>
+                    <td>Bad</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <h2>Head Coverage</h2>
+                <hr style="border: 5px solid #e4efff"/>
+                <table>
+                  <tr>
+                    <td><input type="radio" name="cover" id="cover-good" value="Good"></td>
+                    <td>Good -  full brain coverage with &geq; 1 slice buffer</td>
+                  </tr>
+                  <tr>
+                    <td><input type="radio" name="cover" id="cover-questionable" value="Questionable"></td>
+                    <td>Questionable - slight clipping or necessary clipping</td>
+                  </tr>
+                  <tr>
+                    <td><input type="radio" name="cover" id="cover-bad" value="Bad"></td>
+                    <td>Bad - brain clipped unnecessarily or severely</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <h2>Unexpected Inhomogeneity</h2>
+                <hr style="border: 5px solid #e4efff"/>
+                <table>
+                  <tr>
+                    <td><input type="radio" name="inhom" id="inhom-none" value="None"></td>
+                    <td>None</td>
+                  </tr>
+                  <tr>
+                    <td><input type="radio" name="inhom" id="inhom-expected" value="Expected"></td>
+                    <td>Expected</td>
+                  </tr>
+                  <tr>
+                    <td><input type="radio" name="inhom" id="inhom-moderate" value="Moderate"></td>
+                    <td>Unexpected - moderate</td>
+                  </tr>
+                  <tr>
+                    <td><input type="radio" name="inhom" id="inhom-severe" value="Severe"></td>
+                    <td>Unexpected - severe</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <h2>Ghosting/Blurring - Affects Brain</h2>
+                <hr style="border: 5px solid #e4efff"/>
+                <table>
+                  <tr>
+                    <td><input type="radio" name="ghost_brain" id="ghost_brain-none" value="None"></td>
+                    <td>None</td>
+                  </tr>
+                  <tr>
+                    <td><input type="radio" name="ghost_brain" id="ghost_brain-mild" value="Mild"></td>
+                    <td>Mild</td>
+                  </tr>
+                  <tr>
+                    <td><input type="radio" name="ghost_brain" id="ghost_brain-moderate" value="Moderate"></td>
+                    <td>Moderate</td>
+                  </tr>
+                  <tr>
+                    <td><input type="radio" name="ghost_brain" id="ghost_brain-severe" value="Severe"></td>
+                    <td>Severe</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <h2>Ghosting/Blurring - Outside of Brain</h2>
+                <hr style="border: 5px solid #e4efff"/>
+                <table>
+                  <tr>
+                    <td><input type="radio" name="ghost_out" id="ghost_out-none" value="None"></td>
+                    <td>None</td>
+                  </tr>
+                  <tr>
+                    <td><input type="radio" name="ghost_out" id="ghost_out-mild" value="Mild"></td>
+                    <td>Mild</td>
+                  </tr>
+                  <tr>
+                    <td><input type="radio" name="ghost_out" id="ghost_out-moderate" value="Moderate"></td>
+                    <td>Moderate</td>
+                  </tr>
+                  <tr>
+                    <td><input type="radio" name="ghost_out" id="ghost_out-severe" value="Severe"></td>
+                    <td>Severe</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <h2>RF Noise/Spiking</h2>
+                <hr style="border: 5px solid #e4efff"/>
+                <table>
+                  <tr>
+                    <td><input type="radio" name="spike" id="spike-none" value="None"></td>
+                    <td>None - no abnormal RF noise</td>
+                  </tr>
+                  <tr>
+                    <td><input type="radio" name="spike" id="spike-mild" value="Mild"></td>
+                    <td>Mild - little static with no distinct pattern</td>
+                  </tr>
+                  <tr>
+                    <td><input type="radio" name="spike" id="spike-moderate" value="Moderate"></td>
+                    <td>Moderate - low-level static with pattern (bands, spheres)</td>
+                  </tr>
+                  <tr>
+                    <td><input type="radio" name="spike" id="spike-severe" value="Severe"></td>
+                    <td>Severe - RF spiking visible</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <h2>Additional Comments</h2>
+                <textarea id="comments" maxlength="255" style="width: 100%; height: 60px">$!{manual_comments}</textarea>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <h2>Overall QC Assessment</h2>
+                <hr style="border: 5px solid #e4efff"/>
+                <table>
+                  <tr>
+                    <td><input type="radio" name="overall" id="overall-pass" value="PASS"></td>
+                    <td>PASS - Data passed quality control</td>
+                  </tr>
+                  <tr>
+                    <td><input type="radio" name="overall" id="overall-warn" value="WARN"></td>
+                    <td>WARN - Data have significant quality issues</td>
+                  </tr>
+                  <tr>
+                    <td><input type="radio" name="overall" id="overall-fail" value="FAIL"></td>
+                    <td>FAIL - Data failed quality control</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td><br/><input class="ui-button ui-widget ui-corner-all" id="manualqc_save" type="button" value="Save" /></td>
+            </tr>
+          </table>
+        </div>
+        <!-- end manual qc tab -->
+        <!-- begin files tab -->
+        <div id="files-tab" style="padding:0px; margin:2px">
+          <table class="big-table">
+            <tr>
+              <th align="left">#</th>
+              <th align="left">File</th>
+              <th align="left">Description</th>
+              <th align="left">Type</th>
+            </tr>
+            <tr>
+              <td>1</td>
+              #set($name = "${aid}_auto_report.txt")
+              <td><a download="$!{name}" href="$!{auto_report}">$!{name}</a></td>
+              <td>Automated QC Report</td>
+              <td>text/plain</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              #set($name = "${aid}_mask_thumbnail.png")
+              <td><a download="$!{name}" href="$!{mask_image}">$!{name}</a></td>
+              <td>Mask Image</td>
+              <td>image/png</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              #set($name = "${aid}_mask.nii.gz")
+              <td><a download="$!{name}" href="$!{mask_nifti}">$!{name}</a></td>
+              <td>Mask NIFTI</td>
+              <td>image/nifti1</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              #set($name = "${aid}_mean_thumbnail.png")
+              <td><a download="$!{name}" href="$!{mean_image}">$!{name}</a></td>
+              <td>Mean Image</td>
+              <td>image/png</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              #set($name = "${aid}_mean.nii.gz")
+              <td><a download="$!{name}" href="$!{mean_nifti}">$!{name}</a></td>
+              <td>Mean NIFTI</td>
+              <td>image/nifti1</td>
+            </tr>
+            <tr>
+              <td>6</td>
+              #set($name = "${aid}_mean_slice.txt")
+              <td><a download="$!{name}" href="$!{mean_slice_data}">$!{name}</a></td>
+              <td>Mean Slice Intensity Data</td>
+              <td>text/plain</td>
+            </tr>
+            <tr>
+              <td>7</td>
+              #set($name = "${aid}_mean_slice.png")
+              <td><a download="$!{name}" href="$!{mean_slice_image}">$!{name}</a></td>
+              <td>Mean Slice Intensity Image</td>
+              <td>text/html</td>
+            </tr>
+            <tr>
+              <td>8</td>
+              #set($name = "${aid}_motion.png")
+              <td><a download="$!{name}" href="$!{motion_image}">$!{name}</a></td>
+              <td>Motion Image</td>
+              <td>image/png</td>
+            </tr>
+            <tr>
+              <td>9</td>
+              #set($name = "${aid}_slice_report.txt")
+              <td><a download="$!{name}" href="$!{slice_report}">$!{name}</a></td>
+              <td>Slice Report</td>
+              <td>text/plain</td>
+            </tr>
+            <tr>
+              <td>10</td>
+              #set($name = "${aid}_slope_thumbnail.png")
+              <td><a download="$!{name}" href="$!{slope_image}">$!{name}</a></td>
+              <td>Slope Image</td>
+              <td>text/png</td>
+            </tr>
+            <tr>
+              <td>11</td>
+              #set($name = "${aid}_slope.nii.gz")
+              <td><a download="$!{name}" href="$!{slope_nifti}">$!{name}</a></td>
+              <td>Slope NIFTI</td>
+              <td>image/nifti1</td>
+            </tr>
+            <tr>
+              <td>12</td>
+              #set($name = "${aid}_snr_thumbnail.png")
+              <td><a download="$!{name}" href="$!{snr_image}">$!{name}</a></td>
+              <td>SNR Image</td>
+              <td>image/png</td>
+            </tr>
+            <tr>
+              <td>13</td>
+              #set($name = "${aid}_snrr.nii.gz")
+              <td><a download="$!{name}" href="$!{snr_nifti}">$!{name}</a></td>
+              <td>SNR NIFTI</td>
+              <td>image/nifti1</td>
+            </tr>
+            <tr>
+              <td>14</td>
+              #set($name = "${aid}_stdev_thumbnail.png")
+              <td><a download="$!{name}" href="$!{stdev_image}">$!{name}</a></td>
+              <td>StDev Image</td>
+              <td>image/png</td>
+            </tr>
+            <tr>
+              <td>15</td>
+              #set($name = "${aid}_stdev.nii.gz")
+              <td><a download="$!{name}" href="$!{stdev_nifti}">$!{name}</a></td>
+              <td>StDev NIFTI</td>
+              <td>image/nifti1</td>
+            </tr>
+          </table>
+        </div>
+        <!-- end files-tab -->
+      </div>
+    </td>
+  </tr>
+</table>

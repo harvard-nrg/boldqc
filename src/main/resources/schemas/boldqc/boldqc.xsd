@@ -1,0 +1,107 @@
+<!-- BOLDQC -->
+<xs:schema targetNamespace="http://www.neuroinfo.org/neuroinfo"
+           xmlns:neuroinfo="http://www.neuroinfo.org/neuroinfo"
+           xmlns:xnat="http://nrg.wustl.edu/xnat"
+           xmlns:xdat="http://nrg.wustl.edu/xdat"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="qualified" attributeFormDefault="unqualified">
+    <xs:import namespace="http://nrg.wustl.edu/xnat" schemaLocation="../xnat/xnat.xsd"/>
+    <xs:import namespace="http://nrg.wustl.edu/xdat" schemaLocation="../xdat/xdat.xsd"/>
+    <xs:element name="BOLDQC" type="neuroinfo:boldqc"/>
+    <xs:complexType name="boldqc">
+        <xs:complexContent>
+            <xs:extension base="xnat:imageAssessorData">
+                <xs:sequence>
+                    <xs:element name="bold_scan_id" type="xs:string"/>
+                    <xs:element name="session_label" type="xs:string"/>
+                    <xs:element name="Size" type="xs:string"/>
+                    <xs:element name="N_Vols" type="xs:integer"/>
+                    <xs:element name="Skip" type="xs:integer"/>
+                    <xs:element name="qc_N_Tps" type="xs:integer"/>
+                    <xs:element name="qc_thresh" type="xs:decimal"/>
+                    <xs:element name="qc_nVox" type="xs:integer"/>
+                    <xs:element name="qc_Mean" type="xs:decimal"/>
+                    <xs:element name="qc_Max" type="xs:decimal"/>
+                    <xs:element name="qc_Min" type="xs:decimal"/>
+                    <xs:element name="qc_Stdev" type="xs:decimal"/>
+                    <xs:element name="qc_sSNR" type="xs:decimal"/>
+                    <xs:element name="qc_vSNR" type="xs:decimal"/>
+                    <xs:element name="qc_slope" type="xs:decimal"/>
+                    <xs:element name="mot_N_Tps" type="xs:integer"/>
+                    <xs:element name="mot_rel_x_mean" type="xs:decimal"/>
+                    <xs:element name="mot_rel_x_sd" type="xs:decimal"/>
+                    <xs:element name="mot_rel_x_max" type="xs:decimal"/>
+                    <xs:element name="mot_rel_x_1mm" type="xs:integer"/>
+                    <xs:element name="mot_rel_x_5mm" type="xs:integer"/>
+                    <xs:element name="mot_rel_y_mean" type="xs:decimal"/>
+                    <xs:element name="mot_rel_y_sd" type="xs:decimal"/>
+                    <xs:element name="mot_rel_y_max" type="xs:decimal"/>
+                    <xs:element name="mot_rel_y_1mm" type="xs:integer"/>
+                    <xs:element name="mot_rel_y_5mm" type="xs:integer"/>
+                    <xs:element name="mot_rel_z_mean" type="xs:decimal"/>
+                    <xs:element name="mot_rel_z_sd" type="xs:decimal"/>
+                    <xs:element name="mot_rel_z_max" type="xs:decimal"/>
+                    <xs:element name="mot_rel_z_1mm" type="xs:integer"/>
+                    <xs:element name="mot_rel_z_5mm" type="xs:integer"/>
+                    <xs:element name="mot_rel_xyz_mean" type="xs:decimal"/>
+                    <xs:element name="mot_rel_xyz_sd" type="xs:decimal"/>
+                    <xs:element name="mot_rel_xyz_max" type="xs:decimal"/>
+                    <xs:element name="mot_rel_xyz_1mm" type="xs:integer"/>
+                    <xs:element name="mot_rel_xyz_5mm" type="xs:integer"/>
+                    <xs:element name="rot_rel_x_mean" type="xs:decimal"/>
+                    <xs:element name="rot_rel_x_sd" type="xs:decimal"/>
+                    <xs:element name="rot_rel_x_max" type="xs:decimal"/>
+                    <xs:element name="rot_rel_y_mean" type="xs:decimal"/>
+                    <xs:element name="rot_rel_y_sd" type="xs:decimal"/>
+                    <xs:element name="rot_rel_y_max" type="xs:decimal"/>
+                    <xs:element name="rot_rel_z_mean" type="xs:decimal"/>
+                    <xs:element name="rot_rel_z_sd" type="xs:decimal"/>
+                    <xs:element name="rot_rel_z_max" type="xs:decimal"/>
+                    <xs:element name="mot_abs_x_mean" type="xs:decimal"/>
+                    <xs:element name="mot_abs_x_sd" type="xs:decimal"/>
+                    <xs:element name="mot_abs_x_max" type="xs:decimal"/>
+                    <xs:element name="mot_abs_y_mean" type="xs:decimal"/>
+                    <xs:element name="mot_abs_y_sd" type="xs:decimal"/>
+                    <xs:element name="mot_abs_y_max" type="xs:decimal"/>
+                    <xs:element name="mot_abs_z_mean" type="xs:decimal"/>
+                    <xs:element name="mot_abs_z_sd" type="xs:decimal"/>
+                    <xs:element name="mot_abs_z_max" type="xs:decimal"/>
+                    <xs:element name="mot_abs_xyz_mean" type="xs:decimal"/>
+                    <xs:element name="mot_abs_xyz_sd" type="xs:decimal"/>
+                    <xs:element name="mot_abs_xyz_max" type="xs:decimal"/>
+                    <xs:element name="rot_abs_x_mean" type="xs:decimal"/>
+                    <xs:element name="rot_abs_x_sd" type="xs:decimal"/>
+                    <xs:element name="rot_abs_x_max" type="xs:decimal"/>
+                    <xs:element name="rot_abs_y_mean" type="xs:decimal"/>
+                    <xs:element name="rot_abs_y_sd" type="xs:decimal"/>
+                    <xs:element name="rot_abs_y_max" type="xs:decimal"/>
+                    <xs:element name="rot_abs_z_mean" type="xs:decimal"/>
+                    <xs:element name="rot_abs_z_sd" type="xs:decimal"/>
+                    <xs:element name="rot_abs_z_max" type="xs:decimal"/>
+                    <xs:element name="manual" minOccurs="0">
+                        <xs:complexType>
+                            <xs:sequence>
+                                <xs:element name="motion" type="xs:string" minOccurs="0"/>
+                                <xs:element name="cover" type="xs:string" minOccurs="0"/>
+                                <xs:element name="inhom" type="xs:string" minOccurs="0"/>
+                                <xs:element name="ghost_brain" type="xs:string" minOccurs="0"/>
+                                <xs:element name="ghost_out" type="xs:string" minOccurs="0"/>
+                                <xs:element name="spike" type="xs:string" minOccurs="0"/>
+                                <xs:element name="overall" type="xs:string" minOccurs="0"/>
+                                <xs:element name="comments" type="xs:string" minOccurs="0"/>
+                            </xs:sequence>
+                        </xs:complexType>
+                    </xs:element>
+                    <xs:element name="imageResource" minOccurs="0" maxOccurs="unbounded">
+                        <xs:complexType>
+                            <xs:sequence>
+                                <xs:element name="label" type="xs:string"/>
+                                <xs:element name="uri" type="xs:string"/>
+                            </xs:sequence>
+                        </xs:complexType>
+                    </xs:element>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+</xs:schema>
