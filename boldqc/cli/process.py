@@ -106,5 +106,8 @@ def do(args):
     if args.xnat_upload:
         logger.info('Uploading artifacts to XNAT')
         auth = yaxil.auth2(args.xnat_alias)
-        yaxil.storerest(auth, args.artifacts_dir, 'boldqc-resource')
+        if getattr(args, 'jsession', None):
+            auth = auth._replace(cookie={'JSESSIONID': args.jsession})
+        with yaxil.session(auth) as ses:
+            ses.storerest(args.artifacts_dir, 'boldqc-resource')
 
