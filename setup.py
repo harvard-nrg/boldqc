@@ -8,8 +8,9 @@ requires = [
     'executors',
     'yaxil',
     'matplotlib',
-    'nibabel',
-    'scipy'
+    'nibabel<5.0.0',
+    'scipy',
+    'numpy<2.0'
 ]
 
 test_requirements = [
