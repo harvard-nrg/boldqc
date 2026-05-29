@@ -74,10 +74,7 @@ def get_bold(args, auth, run, scan, verbose=False):
     cmd.extend([
         '--config', '-'
     ])
-    # pass jsession cookie so YAXIL does not create another one
-    cmd.extend([
-        '--jsession', auth.cookie['JSESSIONID']
-    ])
+    os.environ['XNAT_JSESSION'] = auth.cookie['JSESSIONID']
     if verbose:
         cmd.append('--debug')
     logger.info(sp.list2cmdline(cmd))
