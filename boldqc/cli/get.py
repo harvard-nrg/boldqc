@@ -36,10 +36,10 @@ def do(args):
             if scan_type == 'BOLD':
                 run += 1
                 scans[run]['bold'] = scan_id
-    logger.info(json.dumps(scans, indent=2))
-    for run,scansr in scans.items():
-        logger.info('getting bold run=%s, scan=%s', run, scansr['bold'])
-        get_bold(args, auth, run, scansr['bold'], verbose=args.verbose)
+        logger.info(json.dumps(scans, indent=2))
+        for run,scansr in scans.items():
+            logger.info('getting bold run=%s, scan=%s', run, scansr['bold'])
+            get_bold(args, ses._auth, run, scansr['bold'], verbose=args.verbose)
 
 def get_bold(args, auth, run, scan, verbose=False):
     config = {
@@ -74,6 +74,7 @@ def get_bold(args, auth, run, scan, verbose=False):
     cmd.extend([
         '--config', '-'
     ])
+    os.environ['XNAT_JSESSION'] = auth.cookie['JSESSIONID']
     if verbose:
         cmd.append('--debug')
     logger.info(sp.list2cmdline(cmd))

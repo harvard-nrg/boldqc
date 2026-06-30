@@ -40,25 +40,26 @@ def do(args):
                 run += 1
                 scans[run]['bold'] = scan_id
 
-    subject_label = scan['subject_label']
-    logger.info(json.dumps(scans, indent=2))
+        subject_label = scan['subject_label']
+        logger.info(json.dumps(scans, indent=2))
 
-    for run,scansr in scans.items():
-        if run != args.run:
-            continue
-        logger.info('getting bold run=%s, scan=%s', run, scansr['bold'])
-        boldqc.cli.get.get_bold(
-            args,
-            auth,
-            run,
-            scansr['bold'],
-            verbose=args.verbose
-        )
-        args.run = int(run)
-        args.run = int(run)
-        bids_ses_label = yaxil.bids.legal.sub('', args.label)
-        bids_sub_label = yaxil.bids.legal.sub('', subject_label)
-        args.sub = 'sub-' + bids_sub_label
-        args.ses = 'ses-' + bids_ses_label
-        logger.debug('sub=%s, ses=%s', args.sub, args.ses)
-        boldqc.cli.process.do(args)
+        for run,scansr in scans.items():
+            if run != args.run:
+                continue
+            logger.info('getting bold run=%s, scan=%s', run, scansr['bold'])
+            boldqc.cli.get.get_bold(
+                args,
+                ses._auth,
+                run,
+                scansr['bold'],
+                verbose=args.verbose
+            )
+            args.run = int(run)
+            args.run = int(run)
+            bids_ses_label = yaxil.bids.legal.sub('', args.label)
+            bids_sub_label = yaxil.bids.legal.sub('', subject_label)
+            args.sub = 'sub-' + bids_sub_label
+            args.ses = 'ses-' + bids_ses_label
+            logger.debug('sub=%s, ses=%s', args.sub, args.ses)
+            args.jsession = ses._auth.cookie['JSESSIONID']
+            boldqc.cli.process.do(args)
