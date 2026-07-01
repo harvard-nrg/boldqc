@@ -1496,7 +1496,7 @@ class NeuroImage(NeuroImageFileBase):
 
     def save_stackcheck_mean_slice_text(self,filename=None,apply_mask=True,lower_threshold_to_zero=None):
         if filename is None:
-            filename = self.get_output_filename_root() + "_mean_slice.txt"
+            filename = self.get_output_filename_root() + "_meanSlice.txt"
         text = self.get_stackcheck_mean_slice_text(apply_mask,lower_threshold_to_zero)
         self._capture_file_save(filename,'mean slice data text file')
         fh = open(filename,"w")
@@ -1518,7 +1518,7 @@ class NeuroImage(NeuroImageFileBase):
 
     def save_stackcheck_mean_slice_csv(self,filename=None,apply_mask=True,lower_threshold_to_zero=None):
         if filename is None:
-            filename = self.get_output_filename_root() + "_mean_slice.csv"
+            filename = self.get_output_filename_root() + "_meanSlice.csv"
         csv = self.get_stackcheck_mean_slice_csv(apply_mask,lower_threshold_to_zero)
         self._capture_file_save(filename,'mean slice data CSV file')
         fh = open(filename,"w")
@@ -1534,7 +1534,7 @@ class NeuroImage(NeuroImageFileBase):
                                         transparent=True,
                                         autoscale=True,):
         if filename is None:
-            filename = self.get_output_filename_root() + "_mean_slice." + format
+            filename = self.get_output_filename_root() + "_meanSlice." + format
         (slice_intensity_means, slice_voxel_counts, data) = self.get_mean_slice_intensities(apply_mask,lower_threshold_to_zero)
         self._capture_file_save(filename,'mean slice intensity plot')
 
@@ -1744,7 +1744,7 @@ class NeuroImage(NeuroImageFileBase):
 
     def save_stackcheck_report_text(self,filename=None,apply_mask=True,lower_threshold_to_zero=None,extended=False):
         if filename is None:
-            filename = self.get_output_filename_root() + "_slice_report.txt"
+            filename = self.get_output_filename_root() + "_sliceReport.txt"
         report_text = self.get_stackcheck_report_text(apply_mask,lower_threshold_to_zero,extended)
         self._capture_file_save(filename,'mean slice report text')
         fh = open(filename,"w")
@@ -1997,7 +1997,7 @@ class NeuroImage(NeuroImageFileBase):
 
     def save_stackcheck_report_html(self,filename=None,apply_mask=True,lower_threshold_to_zero=None,extended=False):
         if filename is None:
-            filename = self.get_output_filename_root() + "_slice_report.html"
+            filename = self.get_output_filename_root() + "_sliceReport.html"
         report_html = self.get_stackcheck_report_html(apply_mask,lower_threshold_to_zero,extended)
         self._capture_file_save(filename,'mean slice report html')
         fh = open(filename,"w")
