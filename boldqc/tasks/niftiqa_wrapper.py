@@ -4,20 +4,21 @@ import shutil
 import base64
 import boldqc
 import logging
-from boldqc.bids import BIDS
 import boldqc.tasks as tasks
 from executors.models import Job
 
 logger = logging.getLogger(__file__)
 
 class Task(tasks.BaseTask):
-    def __init__(self, infile, outdir, tempdir=None, pipenv=None):
-        self._infile = infile
-        super().__init__(outdir, tempdir, pipenv)
+    def __init__(self, infile, outdir, tempdir=None, pipenv=None, layout=None):
+        super().__init__(infile, outdir, tempdir, pipenv, layout)
 
     def build(self):
-        sidecar = BIDS.sidecar_for_image(self._infile)
-        mask_threshold = boldqc.get_mask_threshold(sidecar)
+        if 'echo' in self._layout.get_entities() and '2' in self._layout.get_echos():
+            sidecar = self._layout.get('file', extension='.json', suffix='bold', echo=2)[0]
+        else:
+            sidecar = self._layout.get('file', extension='.json', suffix='bold')[0]
+        mask_threshold = self.get_mask_threshold()
         cmd = [
             'selfie',
             '--lock',

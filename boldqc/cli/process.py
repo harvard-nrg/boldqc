@@ -15,7 +15,8 @@ import subprocess as sp
 import boldqc.tasks.stackcheck_ext as stackcheck_ext
 import boldqc.tasks.niftiqa_wrapper as niftiqa_wrapper
 from executors.models import Job, JobArray
-from boldqc.bids import BIDS
+from bids import BIDSLayout
+from boldqc.bids import make_dataset_description
 from boldqc.xnat import Report
 from boldqc.state import State
 
@@ -35,28 +36,32 @@ def do(args):
         E = executors.probe(args.partition)
     jarray = JobArray(E)
 
-    # create BIDS
-    B = BIDS(args.bids_dir, args.sub, ses=args.ses)
-    raw = B.raw_bold('bold', run=args.run)
-    logger.debug('BOLD raw: %s', raw)
+    # create pybids layout object
+    # it is important to use validate=False
+    # yaxil doesn't create completely valids BIDS file names, so pybids will ignore them by default
+    # with validate=True
+    layout = BIDSLayout(args.bids_dir, validate=False)
 
-    # get repetition time from T1w sidecar for vNav processing
-    sidecar = os.path.join(*raw) + '.json'
-    logger.debug('sidecar: %s', sidecar)
-    with open(sidecar) as fo:
-        js = json.load(fo)
-        tr = js['RepetitionTime']
+    # get TR using pybids
+    tr = layout.get_tr()
     logger.debug('TR: %s', tr)
 
-    boldqc_outdir = None
-    infile = os.path.join(*raw) + '.nii.gz'
-    boldqc_outdir = B.derivatives_dir('boldqc')
-    boldqc_outdir = os.path.join(boldqc_outdir, 'func', raw[1])
+    # grab the second echo if multiecho data is present
+    if 'echo' in layout.get_entities() and '2' in layout.get_echos():
+        infile_obj = layout.get('object', extension='nii.gz', suffix='bold', echo=2)[0]
+    else:
+        infile_obj = layout.get('object', extension='nii.gz', suffix='bold')[0]
+    infile = infile_obj.path
+
+    # build the boldqc derivatives directory using pybids' build_path method
+    # will incorporate echo is present
+    boldqc_outdir = layout.build_path(source=infile_obj.get_entities(), path_patterns="derivatives/boldqc/sub-{subject}/[ses-{session}]/{datatype}/sub-{subject}[_ses-{session}]_run-{run}[_echo-{echo}]_{suffix}")
     
     # niftiqa job
     task = niftiqa_wrapper.Task(
         infile,
-        boldqc_outdir
+        boldqc_outdir,
+        layout=layout
     )
     logger.info(json.dumps(task.command, indent=1))
     jarray.add(task.job)
@@ -64,7 +69,8 @@ def do(args):
     # stackcheck_ext job
     task = stackcheck_ext.Task(
         infile,
-        boldqc_outdir
+        boldqc_outdir,
+        layout=layout
     )
     logger.info(json.dumps(task.command, indent=1))
     jarray.add(task.job)
@@ -90,6 +96,16 @@ def do(args):
         if failed > 0:
             sys.exit(1)
 
+    # Using pybids to index the files created by boldqc
+    # Allows for easy querying of files within pybids
+    if failed == 0:
+        logger.info('Indexing workflow derivatives with pybids')
+        derivatives_path = os.path.join(args.bids_dir, 'derivatives', 'boldqc')
+        BIDSVersion = layout.description.get('BIDSVersion')
+        make_dataset_description(path=derivatives_path, name='boldqc', version=BIDSVersion, type='derivative')
+        layout.add_derivatives(derivatives_path)
+        logger.info('Derivatives indexed successfully')
+
     # artifacts directory
     if not args.artifacts_dir:
         args.artifacts_dir = os.path.join(
@@ -98,7 +114,7 @@ def do(args):
         )
 
     # build data to upload to XNAT
-    R = Report(args.bids_dir, args.sub, args.ses, args.run)
+    R = Report(layout)
     logger.info('building xnat artifacts to %s', args.artifacts_dir)
     R.build_assessment(args.artifacts_dir)
 

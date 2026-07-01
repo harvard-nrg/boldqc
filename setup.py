@@ -8,6 +8,7 @@ requires = [
     'executors',
     'yaxil',
     'matplotlib',
+    'pybids==0.22.0'
     'nibabel<5.0.0',
     'scipy',
     'numpy<2.0'
