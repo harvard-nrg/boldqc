@@ -10,14 +10,18 @@ import shutil
 import zipfile
 import logging
 from lxml import etree
+from pathlib import Path
 from bids import BIDSLayout
 import boldqc.parsers as parsers
 
 logger = logging.getLogger(__name__)
 
 class Report:
-    def __init__(self, layout):
+    def __init__(self, layout, entities, outdir):
         self.layout = layout
+        self.entities = entities
+        self.outdir = Path(outdir)
+        self.stem = self.outdir.name
 
     def build_assessment(self, output):
         '''
@@ -66,11 +70,13 @@ class Report:
         floatfmt = lambda x: '{:f}'.format(float(x))
 
         # parse auto_report
-        auto_report_file = self.layout.get('file', scope='boldqc', extension='.txt', suffix='autoReport')[0]
+        auto_report_file = self.outdir / f'{self.stem}_autoReport.txt'
+        logger.info(f'looking for auto report {auto_report_file}')
         auto_report = parsers.parse_auto_report(auto_report_file)
         
         # parse slice_report
-        slice_report_file = self.layout.get('file', scope='boldqc', extension='.txt', suffix='sliceReport')[0]
+        slice_report_file = self.outdir / f'{self.stem}_sliceReport.txt'
+        logger.info(f'looking for slice report {slice_report_file}')
         slice_report = parsers.parse_slice_report(slice_report_file)
         
         # start building XML
@@ -149,45 +155,41 @@ class Report:
 
         # write assessor to output mount location.
         xmlstr = etree.tostring(root, pretty_print=True, xml_declaration=True, encoding='UTF-8')
-        assessor_dir = os.path.join(output, 'assessor')
-        os.makedirs(assessor_dir, exist_ok=True)
-        assessment_xml = os.path.join(assessor_dir, 'assessment.xml')
-        logger.debug(f'writing {assessment_xml}')
-        with open(assessment_xml, 'wb') as fo:
-            fo.write(xmlstr)
+        assessor_dir = Path(output, 'assessor')
+        assessor_dir.mkdir(parents=True, exist_ok=True)
+        assessment_xml = assessor_dir / 'assessment.xml'
+        logger.info(f'writing {assessment_xml}')
+        assessment_xml.write_bytes(xmlstr)
 
         # copy resources to output mount location
-        resources_dir = os.path.join(output, 'resources')
-        os.makedirs(resources_dir, exist_ok=True)
-        logger.debug(f'copying resources into {resources_dir}')
+        resources_dir = Path(output, 'resources')
+        resources_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(f'copying resources into {resources_dir}')
         for resource in resources:
             src = resource['source']
-            dest = os.path.join(resources_dir, resource['dest'])
-            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            dest = resources_dir / resource['dest']
+            dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(src, dest)
 
     def datasource(self):
         # returns the xnat specific data from the boldqc log .json file
-        sidecar = self.layout.get(scope='boldqc', extension='.json', suffix='bold')[0]
-        if not sidecar:
-            raise FileNotFoundError(sidecar)
-        js = sidecar.get_dict()
+        path = self.outdir / 'logs' / f'{self.stem}.json'
+        with open(path) as fo:
+            js = json.load(fo)
         return js['DataSource']['application/x-xnat']
 
     def protocol(self, task):
         # returns the protocol specific information from the boldqc log .json file
-        sidecar = self.layout.get(scope='boldqc', extension='.json', suffix='bold')[0]
-        if not sidecar:
-            raise FileNotFoundError(sidecar)
-        js = sidecar.get_dict()
+        path = self.outdir / 'logs' / f'{self.stem}.json'
+        with open(path) as fo:
+            js = json.load(fo)
         return js['ProtocolName']
 
     def provenance(self):
         # returns the provenance information from the boldqc log .json file
-        sidecar = self.layout.get(scope='boldqc', extension='.json', suffix='provenance')[0]
-        if not sidecar:
-            raise FileNotFoundError(sidecar)
-        js = sidecar.get_dict()
+        path = self.outdir / 'logs' / 'provenance.json'
+        with open(path) as fo:
+            js = json.load(fo)
         return js
 
     def _get_resources(self, aid):
@@ -220,20 +222,19 @@ class Report:
             ('sliceReport', '.txt', 'slice-report', 'slice_report.txt')
         ]
         
-        resources = []
-        
         # Build from file specs
+        resources = []
         for suffix, ext, dest_dir, output_name in file_specs:
-            files = self.layout.get('file', scope='boldqc', extension=ext, suffix=suffix)
-            if files:
-                resource = {
-                    'source': files[0],
-                    'dest': os.path.join(dest_dir, f'{aid}_{output_name}')
-                }
-                resources.append(resource)
-            else:
-                logger.warning(f"File not found: suffix={suffix}, extension={ext}")
-        
+            source = self.outdir / f'{self.stem}_{suffix}{ext}'
+            dest = Path(dest_dir) / f'{aid}_{output_name}'
+            if not source.exists():
+                raise FileNotFoundError(source)
+            resource = {
+                'source': source,
+                'dest': dest
+            }
+            resources.append(resource)
+
         return resources
 
 class AssessmentError(Exception):

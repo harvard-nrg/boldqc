@@ -11,9 +11,19 @@ from abc import ABC, abstractmethod
 logger = logging.getLogger(__name__)
 
 class BaseTask(ABC):
-    def __init__(self, infile, outdir, tempdir=None, pipenv=None, layout=None):
+    def __init__(
+        self,
+        infile,
+        outdir,
+        entities,
+        tempdir=None,
+        pipenv=None,
+        layout=None
+    ):
         self._infile = infile
         self._outdir = outdir
+        self._entities = entities.copy()
+        del self._entities['extension']
         self._tempdir = tempdir
         self._pipenv = pipenv
         self._layout = layout

@@ -10,14 +10,34 @@ from executors.models import Job
 logger = logging.getLogger(__file__)
 
 class Task(tasks.BaseTask):
-    def __init__(self, infile, outdir, tempdir=None, pipenv=None, layout=None):
-        super().__init__(infile, outdir, tempdir, pipenv, layout)
+    def __init__(
+        self,
+        infile,
+        outdir,
+        entities,
+        tempdir=None,
+        pipenv=None,
+        layout=None
+    ):
+        super().__init__(infile, outdir, entities, tempdir, pipenv, layout)
 
     def build(self):
-        if 'echo' in self._layout.get_entities() and '2' in self._layout.get_echos():
-            sidecar = self._layout.get('file', extension='.json', suffix='bold', echo=2)[0]
+        echos = self._layout.get_echos(**self._entities)
+        if '2' in echos:
+            entities = self._entities.copy()
+            del entities['echo']
+            sidecar = self._layout.get(
+                'file',
+                extension='.json',
+                echo=2,
+                **entities
+            )[0]
         else:
-            sidecar = self._layout.get('file', extension='.json', suffix='bold')[0]
+            sidecar = self._layout.get(
+                'file',
+                extension='.json',
+                **self._entities
+            )[0]
         mask_threshold = self.get_mask_threshold()
         cmd = [
             'selfie',

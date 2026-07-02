@@ -37,30 +37,58 @@ def do(args):
     jarray = JobArray(E)
 
     # create pybids layout object
-    # it is important to use validate=False
-    # yaxil doesn't create completely valids BIDS file names, so pybids will ignore them by default
-    # with validate=True
     layout = BIDSLayout(args.bids_dir, validate=False)
 
+    # create layout filters
+    filters = {
+        'subject': args.sub,
+        'session': args.ses,
+        'run': args.run,
+        'datatype': 'func',
+        'suffix': 'bold'
+    }
+    if args.ses:
+        filters['session'] = args.ses
+
     # get TR using pybids
-    tr = layout.get_tr()
-    logger.debug('TR: %s', tr)
+    logger.info(f'using BIDSLayout filters {filters}')
+    tr = layout.get_tr(**filters)
+    logger.info(f'TR: {tr}')
 
     # grab the second echo if multiecho data is present
-    if 'echo' in layout.get_entities() and '2' in layout.get_echos():
-        infile_obj = layout.get('object', extension='nii.gz', suffix='bold', echo=2)[0]
+    if '2' in layout.get_echos(**filters):
+        infile_obj = layout.get(
+            'object',
+            extension='nii.gz',
+            echo=2,
+            **filters
+        )[0]
     else:
-        infile_obj = layout.get('object', extension='nii.gz', suffix='bold')[0]
+        infile_obj = layout.get(
+            'object',
+            extension='nii.gz',
+            **filters
+        )[0]
+
     infile = infile_obj.path
+    entities = infile_obj.get_entities()
 
     # build the boldqc derivatives directory using pybids' build_path method
     # will incorporate echo is present
-    boldqc_outdir = layout.build_path(source=infile_obj.get_entities(), path_patterns="derivatives/boldqc/sub-{subject}/[ses-{session}]/{datatype}/sub-{subject}[_ses-{session}]_run-{run}[_echo-{echo}]_{suffix}")
-    
+    boldqc_outdir = layout.build_path(
+        source=entities,
+        path_patterns=(
+            "derivatives/boldqc/sub-{subject}/[ses-{session}]/"
+            "{datatype}/sub-{subject}[_ses-{session}]_run-{run}"
+            "[_echo-{echo}]_{suffix}"
+        )
+    )
+
     # niftiqa job
     task = niftiqa_wrapper.Task(
         infile,
         boldqc_outdir,
+        entities,
         layout=layout
     )
     logger.info(json.dumps(task.command, indent=1))
@@ -70,6 +98,7 @@ def do(args):
     task = stackcheck_ext.Task(
         infile,
         boldqc_outdir,
+        entities,
         layout=layout
     )
     logger.info(json.dumps(task.command, indent=1))
@@ -85,14 +114,16 @@ def do(args):
         failed = len(jarray.failed)
         complete = len(jarray.complete)
         if failed:
-            logger.info('%s/%s jobs failed', failed, numjobs)
+            logger.info(f'{failed}/{numjobs} jobs failed')
             for pid,job in iter(jarray.failed.items()):
-                logger.error('%s exited with returncode %s', job.name, job.returncode)
+                logger.error(
+                    f'{job.name} exited with returncode {job.returncode}'
+                )
                 with open(job.output, 'r') as fp:
                     logger.error('standard output\n%s', fp.read())
                 with open(job.error, 'r') as fp:
                     logger.error('standard error\n%s', fp.read())
-        logger.info('%s/%s jobs completed', complete, numjobs)
+        logger.info(f'{complete}/{numjobs} jobs completed')
         if failed > 0:
             sys.exit(1)
 
@@ -102,7 +133,12 @@ def do(args):
         logger.info('Indexing workflow derivatives with pybids')
         derivatives_path = os.path.join(args.bids_dir, 'derivatives', 'boldqc')
         BIDSVersion = layout.description.get('BIDSVersion')
-        make_dataset_description(path=derivatives_path, name='boldqc', version=BIDSVersion, type='derivative')
+        make_dataset_description(
+            path=derivatives_path,
+            name='boldqc',
+            version=BIDSVersion,
+            type='derivative'
+        )
         layout.add_derivatives(derivatives_path)
         logger.info('Derivatives indexed successfully')
 
@@ -114,8 +150,8 @@ def do(args):
         )
 
     # build data to upload to XNAT
-    R = Report(layout)
-    logger.info('building xnat artifacts to %s', args.artifacts_dir)
+    R = Report(layout, entities, boldqc_outdir)
+    logger.info(f'building xnat artifacts to {args.artifacts_dir}')
     R.build_assessment(args.artifacts_dir)
 
     # upload data to xnat over rest api

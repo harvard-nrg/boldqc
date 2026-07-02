@@ -29,6 +29,7 @@ def do(args):
     os.environ['XNAT_HOST'] = auth.url
     os.environ['XNAT_USER'] = auth.username
     os.environ['XNAT_PASS'] = auth.password
+
     # query BOLD scans
     with yaxil.session(auth) as ses:
         scans = col.defaultdict(dict)
@@ -55,11 +56,10 @@ def do(args):
                 verbose=args.verbose
             )
             args.run = int(run)
-            args.run = int(run)
             bids_ses_label = yaxil.bids.legal.sub('', args.label)
             bids_sub_label = yaxil.bids.legal.sub('', subject_label)
-            args.sub = 'sub-' + bids_sub_label
-            args.ses = 'ses-' + bids_ses_label
-            logger.debug('sub=%s, ses=%s', args.sub, args.ses)
+            args.sub = bids_sub_label
+            args.ses = bids_ses_label
+            logger.debug(f'sub=sub-{args.sub}, ses=ses-{args.ses}')
             args.jsession = ses._auth.cookie['JSESSIONID']
             boldqc.cli.process.do(args)
