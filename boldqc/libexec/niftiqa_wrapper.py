@@ -73,22 +73,22 @@ def main():
     logger.info('removing .png, .svg, and .html files from niftiqa output')
     for pattern in ['*.png', '*.svg', '*.html']:
         for f in glob.glob(os.path.join(eqcdir, pattern)):
-            if not f.endswith('mean_slice.png'):
+            if not f.endswith('meanSlice.png'):
                 logger.info('removing %s', f)
                 os.remove(f)
     
     # generate new snapshots
     logger.info('creating new snapshots')
     os.chdir(eqcdir)
-    mosaic(f'{base}_mask{ext}', f'{base}_mask_thumbnail.png',
+    mosaic(f'{base}_mask{ext}', f'{base}_maskThumbnail.png',
         xy=(args.snap_x, args.snap_y))
-    mosaic(f'{base}_mean{ext}', f'{base}_mean_thumbnail.png',
+    mosaic(f'{base}_mean{ext}', f'{base}_meanThumbnail.png',
         xy=(args.snap_x, args.snap_y))
-    mosaic(f'{base}_stdev{ext}', f'{base}_stdev_thumbnail.png',
+    mosaic(f'{base}_stdev{ext}', f'{base}_stdevThumbnail.png',
         xy=(args.snap_x, args.snap_y))
-    mosaic(f'{base}_slope{ext}', f'{base}_slope_thumbnail.png',
+    mosaic(f'{base}_slope{ext}', f'{base}_slopeThumbnail.png',
         xy=(args.snap_x, args.snap_y))
-    mosaic(f'{base}_snr{ext}', f'{base}_snr_thumbnail.png',
+    mosaic(f'{base}_snr{ext}', f'{base}_snrThumbnail.png',
         xy=(args.snap_x, args.snap_y), win=(0, args.snr_pct))
 
     # done

@@ -256,7 +256,7 @@ plt.xlabel("Volumes (N)")
 plt.ylabel("Signal Intensity")
 plt.title("Mean Slice Intensity")
 ## --- save figure
-plt.savefig("$outdir/${base}_mean_slice.png", format="png")
+plt.savefig("$outdir/${base}_meanSlice.png", format="png")
 EOF
 
     if [ $? -ne 0 ]; then
@@ -497,8 +497,8 @@ echo "Done."
 
 ## --- create *_auto_report.txt
 echo -n "Creating report file... "
-report_file="$outdir/${base}_auto_report.txt"
-report_xml="$outdir/${base}_auto_report.xml"
+report_file="$outdir/${base}_autoReport.txt"
+report_xml="$outdir/${base}_autoReport.xml"
 
 program_end_secs=`date +%s`
 program_runtime_secs=`expr $program_end_secs - $program_start_secs`
@@ -516,12 +516,12 @@ Skip $skip
 
 qc_N_Tps         $numof_tps
 qc_thresh        $thresh
-qc_nVox          `grep 'VOXEL' $outdir/${base}_slice_report.txt | cut -f 2`
-qc_Mean_old      `grep 'VOXEL' $outdir/${base}_slice_report.txt | cut -f 3`
-qc_Stdev_old     `grep 'VOXEL' $outdir/${base}_slice_report.txt | cut -f 4`
+qc_nVox          `grep 'VOXEL' $outdir/${base}_sliceReport.txt | cut -f 2`
+qc_Mean_old      `grep 'VOXEL' $outdir/${base}_sliceReport.txt | cut -f 3`
+qc_Stdev_old     `grep 'VOXEL' $outdir/${base}_sliceReport.txt | cut -f 4`
 qc_Mean          $qc_Mean
 qc_Stdev         $qc_Stdev
-qc_sSNR          `grep 'VOXEL' $outdir/${base}_slice_report.txt | cut -f 5`
+qc_sSNR          `grep 'VOXEL' $outdir/${base}_sliceReport.txt | cut -f 5`
 qc_vSNR          $qc_vSNR
 qc_slope         $qc_slope
 

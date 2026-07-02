@@ -10,42 +10,14 @@ import shutil
 import zipfile
 import logging
 from lxml import etree
-from boldqc.bids import BIDS
+from bids import BIDSLayout
 import boldqc.parsers as parsers
 
 logger = logging.getLogger(__name__)
 
 class Report:
-    def __init__(self, bids, sub, ses, run):
-        self.module = os.path.dirname(__file__)
-        self.bids = bids
-        self.sub = sub
-        self.run = run
-        self.ses = ses if ses else ''
- 
-    def getdirs(self):
-        self.dirs = {
-            'boldqc': None
-        }
-        d = os.path.join(
-            self.bids,
-            'derivatives',
-            'boldqc',
-            'sub-' + self.sub.replace('sub-', ''),
-            'ses-' + self.ses.replace('ses-', ''),
-            'func'
-        )
-        basename = BIDS.basename(**{
-            'sub': self.sub,
-            'ses': self.ses,
-            'run': self.run,
-            'mod': 'bold'
-        })
-        dirname = os.path.join(d, basename)
-        logger.debug('looking for %s', dirname)
-        if os.path.exists(dirname):
-            self.dirs['boldqc'] = dirname
-        logger.debug('boldqc dir: %s', self.dirs['boldqc'])
+    def __init__(self, layout):
+        self.layout = layout
 
     def build_assessment(self, output):
         '''
@@ -53,15 +25,6 @@ class Report:
 
         :param output: Base output directory
         '''
-        basename = BIDS.basename(**{
-            'sub': self.sub,
-            'ses': self.ses,
-            'run': self.run,
-            'mod': 'bold'
-        })
-        self.getdirs()
-        if not self.dirs['boldqc']:
-            raise AssessmentError('need boldqc data to build assessment')
 
         # initialize namespaces
         ns = {
@@ -73,7 +36,7 @@ class Report:
         }
 
         # read json sidecar for scan number
-        boldqc_ds = self.datasource('boldqc')
+        boldqc_ds = self.datasource()
         logger.info('boldqc info %s', '|'.join(boldqc_ds.values()))
 
         # assessment id
@@ -89,90 +52,36 @@ class Report:
         root.attrib['project'] = boldqc_ds['project']
         root.attrib['ID'] = aid
         root.attrib['label'] = aid
+        
         # get start date and time from morph provenance
-        fname = os.path.join(self.dirs['boldqc'], 'logs', 'provenance.json')
-        with open(fname) as fo:
-            prov = json.load(fo)
+        prov = self.provenance()
+
         # add date and time
         etree.SubElement(root, xnatns + 'date').text = prov['start_date']
         etree.SubElement(root, xnatns + 'time').text = prov['start_time']
+        
         # compile a list of files to be added to xnat:out section
-        resources = [
-            {
-                'source': os.path.join(self.dirs['boldqc'], f'{basename}_mean.nii.gz'),
-                'dest': os.path.join('mean-nifti', f'{aid}_mean.nii.gz')
-            },
-            {
-                'source': os.path.join(self.dirs['boldqc'], f'{basename}_mean_thumbnail.png'),
-                'dest': os.path.join('mean-image', f'{aid}_mean_thumbnail.png')
-            },
-            {
-                'source': os.path.join(self.dirs['boldqc'], f'{basename}_mean_slice.txt'),
-                'dest': os.path.join('mean-slice-data', f'{aid}_mean_slice.txt')
-            },
-            {
-                'source': os.path.join(self.dirs['boldqc'], f'{basename}_mean_slice.png'),
-                'dest': os.path.join('mean-slice-image', f'{aid}_mean_slice.png')
-            },
-            {
-                'source': os.path.join(self.dirs['boldqc'], f'{basename}_mask.nii.gz'),
-                'dest': os.path.join('mask-nifti', f'{aid}_mask.nii.gz')
-            },
-            {
-                'source': os.path.join(self.dirs['boldqc'], f'{basename}_mask_thumbnail.png'),
-                'dest': os.path.join('mask-image', f'{aid}_mask_thumbnail.png')
-            },
-            {
-                'source': os.path.join(self.dirs['boldqc'], f'{basename}_snr.nii.gz'),
-                'dest': os.path.join('snr-nifti', f'{aid}_snr.nii.gz')
-            },
-            {
-                'source': os.path.join(self.dirs['boldqc'], f'{basename}_snr_thumbnail.png'),
-                'dest': os.path.join('snr-image', f'{aid}_snr_thumbnail.png')
-            },
-            {
-                'source': os.path.join(self.dirs['boldqc'], f'{basename}_stdev.nii.gz'),
-                'dest': os.path.join('stdev-nifti', f'{aid}_stdev.nii.gz')
-            },
-            {
-                'source': os.path.join(self.dirs['boldqc'], f'{basename}_stdev_thumbnail.png'),
-                'dest': os.path.join('stdev-image', f'{aid}_stdev_thumbnail.png')
-            },
-            {
-                'source': os.path.join(self.dirs['boldqc'], f'{basename}_motion.png'),
-                'dest': os.path.join('motion-image', f'{aid}_motion.png')
-            },
-            {
-                'source': os.path.join(self.dirs['boldqc'], f'{basename}_slope.nii.gz'),
-                'dest': os.path.join('slope-nifti', f'{aid}_slope.nii.gz')
-            },
-            {
-                'source': os.path.join(self.dirs['boldqc'], f'{basename}_slope_thumbnail.png'),
-                'dest': os.path.join('slope-image', f'{aid}_slope_thumbnail.png')
-            },
-            {
-                'source': os.path.join(self.dirs['boldqc'], f'{basename}_auto_report.txt'),
-                'dest': os.path.join('auto-report', f'{aid}_auto_report.txt')
-            },
-            {
-                'source': os.path.join(self.dirs['boldqc'], f'{basename}_slice_report.txt'),
-                'dest': os.path.join('slice-report', f'{aid}_slice_report.txt')
-            }
-        ]
+        resources = self._get_resources(aid)
 
         floatfmt = lambda x: '{:f}'.format(float(x))
 
         # parse auto_report
-        auto_report_file = os.path.join(self.dirs['boldqc'], f'{basename}_auto_report.txt')
+        auto_report_file = self.layout.get('file', scope='boldqc', extension='.txt', suffix='autoReport')[0]
         auto_report = parsers.parse_auto_report(auto_report_file)
+        
         # parse slice_report
-        slice_report_file = os.path.join(self.dirs['boldqc'], f'{basename}_slice_report.txt')
+        slice_report_file = self.layout.get('file', scope='boldqc', extension='.txt', suffix='sliceReport')[0]
         slice_report = parsers.parse_slice_report(slice_report_file)
+        
         # start building XML
         xnatns = '{%s}' % ns['xnat']
+        
+        # add boldqc metadata
         etree.SubElement(root, xnatns + 'imageSession_ID').text = boldqc_ds['experiment_id']
         etree.SubElement(root, 'bold_scan_id').text = boldqc_ds['scan']
         etree.SubElement(root, 'session_label').text = boldqc_ds['experiment']
+
+        # add elements from the auto report and slice report
         etree.SubElement(root, 'Size').text = auto_report['InputFileSize']
         etree.SubElement(root, 'N_Vols').text = auto_report['N_Vols']
         etree.SubElement(root, 'Skip').text = auto_report['Skip']
@@ -257,23 +166,75 @@ class Report:
             os.makedirs(os.path.dirname(dest), exist_ok=True)
             shutil.copyfile(src, dest)
 
-    def datasource(self, task):
-        basename = os.path.basename(self.dirs[task])
-        sidecar = os.path.join(self.dirs[task], 'logs', basename + '.json')
-        if not os.path.exists(sidecar):
+    def datasource(self):
+        # returns the xnat specific data from the boldqc log .json file
+        sidecar = self.layout.get(scope='boldqc', extension='.json', suffix='bold')[0]
+        if not sidecar:
             raise FileNotFoundError(sidecar)
-        with open(sidecar) as fo:
-            js = json.load(fo)
+        js = sidecar.get_dict()
         return js['DataSource']['application/x-xnat']
 
     def protocol(self, task):
-        basename = os.path.basename(self.dirs[task])
-        sidecar = os.path.join(self.dirs[task], 'logs', basename + '.json')
-        if not os.path.exists(sidecar):
+        # returns the protocol specific information from the boldqc log .json file
+        sidecar = self.layout.get(scope='boldqc', extension='.json', suffix='bold')[0]
+        if not sidecar:
             raise FileNotFoundError(sidecar)
-        with open(sidecar) as fo:
-            js = json.load(fo)
+        js = sidecar.get_dict()
         return js['ProtocolName']
+
+    def provenance(self):
+        # returns the provenance information from the boldqc log .json file
+        sidecar = self.layout.get(scope='boldqc', extension='.json', suffix='provenance')[0]
+        if not sidecar:
+            raise FileNotFoundError(sidecar)
+        js = sidecar.get_dict()
+        return js
+
+    def _get_resources(self, aid):
+        """
+        Build resource mapping for XNAT upload.
+        
+        Args:
+            aid: Assessment ID
+            
+        Returns:
+            List of dicts with 'source' and 'dest' keys
+        """
+        
+        # Define file specifications: (suffix, extension, dest_dir, output_suffix)
+        file_specs = [
+            ('mean', '.nii.gz', 'mean-nifti', 'mean.nii.gz'),
+            ('meanThumbnail', '.png', 'mean-image', 'mean_thumbnail.png'),
+            ('meanSlice', '.txt', 'mean-slice-data', 'mean_slice.txt'),
+            ('meanSlice', '.png', 'mean-slice-image', 'mean_slice.png'),
+            ('mask', '.nii.gz', 'mask-nifti', 'mask.nii.gz'),
+            ('maskThumbnail', '.png', 'mask-image', 'mask_thumbnail.png'),
+            ('snr', '.nii.gz', 'snr-nifti', 'snr.nii.gz'),
+            ('snrThumbnail', '.png', 'snr-image', 'snr_thumbnail.png'),
+            ('stdev', '.nii.gz', 'stdev-nifti', 'stdev.nii.gz'),
+            ('stdevThumbnail', '.png', 'stdev-image', 'stdev_thumbnail.png'),
+            ('motion', '.png', 'motion-image', 'motion.png'),
+            ('slope', '.nii.gz', 'slope-nifti', 'slope.nii.gz'),
+            ('slopeThumbnail', '.png', 'slope-image', 'slope_thumbnail.png'),
+            ('autoReport', '.txt', 'auto-report', 'auto_report.txt'),
+            ('sliceReport', '.txt', 'slice-report', 'slice_report.txt')
+        ]
+        
+        resources = []
+        
+        # Build from file specs
+        for suffix, ext, dest_dir, output_name in file_specs:
+            files = self.layout.get('file', scope='boldqc', extension=ext, suffix=suffix)
+            if files:
+                resource = {
+                    'source': files[0],
+                    'dest': os.path.join(dest_dir, f'{aid}_{output_name}')
+                }
+                resources.append(resource)
+            else:
+                logger.warning(f"File not found: suffix={suffix}, extension={ext}")
+        
+        return resources
 
 class AssessmentError(Exception):
     pass
