@@ -256,7 +256,7 @@ plt.xlabel("Volumes (N)")
 plt.ylabel("Signal Intensity")
 plt.title("Mean Slice Intensity")
 ## --- save figure
-plt.savefig("$outdir/${base}_mean_slice.png", format="png")
+plt.savefig("$outdir/${base}_meanSlice.png", format="png")
 EOF
 
     if [ $? -ne 0 ]; then
@@ -343,20 +343,49 @@ checkMode "$outdir/moco.par" "r"
 checkMode "$outdir/$base.rdat" "c"
 
 tail -n $numof_tps $outdir/moco.par | awk 'BEGIN {n=0; init=0;} ($1 !~/#/) { ncol = NF; init = 1; } (init == 1 && $1 !~/#/) { if (NF != ncol) { print "format error"; exit -1;} for (j=1;j<=ncol;j++) data[n,int((j+2)%6) + 1] = $j; n++;} END { for (i = 0; i < n; i++) { printf("%d", i+1); for (j = 1;j <=ncol; j++) printf ("  %10.6f", data[i,j]); printf("  %10.6f\n",1);}}' > $outdir/$base.dat
+
 tail -n $numof_tps $outdir/moco.par | awk 'BEGIN {n=0; init=0;} ($1 !~/#/) { ncol = NF; if (init == 0) {for (j = 1; j <= ncol; j++) { data_average[j] = 0;}; }; init = 1; } (init == 1 && $1 !~/#/) { if (NF != ncol) { print "format error"; exit -1;} for (j=1;j<=ncol;j++) {data[n,int((j+2)%6)+1] = $j; data_average[int((j+2)%6)+1] = (data[n,int((j+2)%6+1)] + data_average[int((j+2)%6+1)]*(n+1) ) / (n+2);} n++;} END { for (i = 0; i < n; i++) { printf("%d", i+1); for (j = 1;j <=ncol; j++) printf ("  %10.6f", data[i,j] - data_average[j]); printf("  %10.6f\n", 1);}}' > $outdir/$base.rdat
-tail -n $numof_tps $outdir/moco.par | awk 'BEGIN {n=0; init=0;} 
-  ($1 !~/#/) { ncol = NF; init = 1; } 
-  (init == 1 && $1 !~/#/) { 
-    if (NF != ncol) { print "format error"; exit -1;} 
-    for (j=1;j<=ncol;j++) data[n,int((j+2)%6) + 1] = $j; n++;
-  } 
-  END { 
-    for (i = 0; i < n; i++) { 
-      printf("%d", i+1); 
-      for (j = 1;j <=ncol; j++) printf ("  %10.6f", data[i,j]);  # <-- space added
-      printf("  %10.6f\n",1);                                      # <-- space added
+
+tail -n $numof_tps $outdir/moco.par | awk '
+BEGIN {
+    n = 0
+    init = 0
+}
+
+($1 !~ /#/) {
+    ncol = NF
+    if (init == 0) {
+        printf("%d", 1)
+        for (j = 1; j <= ncol; j++) {
+            printf("  %10.6f", 0)
+        }
+        printf("  %10.6f\n", 1)
     }
-  }' > $outdir/$base.ddat
+    init = 1
+}
+
+(init == 1 && $1 !~ /#/) {
+    if (NF != ncol) {
+        print "format error"
+        exit -1
+    }
+    for (j = 1; j <= ncol; j++) {
+        data[n, int((j + 2) % 6) + 1] = $j
+    }
+    n++
+}
+
+END {
+    for (i = 1; i < n; i++) {
+        printf("%d", i + 1)
+        for (j = 1; j <= ncol; j++) {
+            printf("  %10.6f", data[i, j] - data[i - 1, j])
+        }
+        printf("  %10.6f\n", 0)
+    }
+}
+' > $outdir/$base.ddat
+
 echo "Done."
 
 echo -n "Calculating motion parameters... "
@@ -497,8 +526,8 @@ echo "Done."
 
 ## --- create *_auto_report.txt
 echo -n "Creating report file... "
-report_file="$outdir/${base}_auto_report.txt"
-report_xml="$outdir/${base}_auto_report.xml"
+report_file="$outdir/${base}_autoReport.txt"
+report_xml="$outdir/${base}_autoReport.xml"
 
 program_end_secs=`date +%s`
 program_runtime_secs=`expr $program_end_secs - $program_start_secs`
@@ -516,12 +545,12 @@ Skip $skip
 
 qc_N_Tps         $numof_tps
 qc_thresh        $thresh
-qc_nVox          `grep 'VOXEL' $outdir/${base}_slice_report.txt | cut -f 2`
-qc_Mean_old      `grep 'VOXEL' $outdir/${base}_slice_report.txt | cut -f 3`
-qc_Stdev_old     `grep 'VOXEL' $outdir/${base}_slice_report.txt | cut -f 4`
+qc_nVox          `grep 'VOXEL' $outdir/${base}_sliceReport.txt | cut -f 2`
+qc_Mean_old      `grep 'VOXEL' $outdir/${base}_sliceReport.txt | cut -f 3`
+qc_Stdev_old     `grep 'VOXEL' $outdir/${base}_sliceReport.txt | cut -f 4`
 qc_Mean          $qc_Mean
 qc_Stdev         $qc_Stdev
-qc_sSNR          `grep 'VOXEL' $outdir/${base}_slice_report.txt | cut -f 5`
+qc_sSNR          `grep 'VOXEL' $outdir/${base}_sliceReport.txt | cut -f 5`
 qc_vSNR          $qc_vSNR
 qc_slope         $qc_slope
 

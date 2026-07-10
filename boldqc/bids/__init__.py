@@ -3,6 +3,7 @@ import re
 import sys
 import json
 import logging
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -151,3 +152,21 @@ class BIDS(object):
             result['mod'] = match.group(1) if match else None
         return result
 
+def make_dataset_description(path,name,version,type):
+    # create a minimal BIDS compliant dataset_description.json
+    root = Path(path)
+
+    description = {
+        "Name": name,
+        "BIDSVersion": version,
+        "DatasetType": type,
+        "GeneratedBy": [{"Name": "boldqc"}]
+    }
+
+    desc_file = root / "dataset_description.json"
+
+    # Write the JSON file
+    with open(desc_file, 'w', encoding='utf-8') as f:
+        json.dump(description, f, indent=4)
+
+    print(f"Created {desc_file}")
