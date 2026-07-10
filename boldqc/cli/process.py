@@ -127,21 +127,6 @@ def do(args):
         if failed > 0:
             sys.exit(1)
 
-    # Using pybids to index the files created by boldqc
-    # Allows for easy querying of files within pybids
-    if failed == 0:
-        logger.info('Indexing workflow derivatives with pybids')
-        derivatives_path = os.path.join(args.bids_dir, 'derivatives', 'boldqc')
-        BIDSVersion = layout.description.get('BIDSVersion')
-        make_dataset_description(
-            path=derivatives_path,
-            name='boldqc',
-            version=BIDSVersion,
-            type='derivative'
-        )
-        layout.add_derivatives(derivatives_path)
-        logger.info('Derivatives indexed successfully')
-
     # artifacts directory
     if not args.artifacts_dir:
         args.artifacts_dir = os.path.join(
