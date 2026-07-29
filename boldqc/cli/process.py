@@ -79,8 +79,8 @@ def do(args):
         source=entities,
         path_patterns=(
             "derivatives/boldqc/sub-{subject}/[ses-{session}]/"
-            "{datatype}/sub-{subject}[_ses-{session}]_run-{run}"
-            "[_echo-{echo}]_{suffix}"
+            "{datatype}/sub-{subject}[_ses-{session}]"
+            "[_task-{task}]_run-{run}[_echo-{echo}]_{suffix}"
         )
     )
 

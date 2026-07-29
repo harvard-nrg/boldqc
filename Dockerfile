@@ -3,7 +3,7 @@ FROM rockylinux:8
 # install useful (but not entirely necessary) things
 RUN dnf install -y git vim
 
-# install some things
+# install some needed things
 RUN dnf install -y python3 python3-devel
 
 # set python to python3
@@ -20,25 +20,25 @@ RUN mkdir -p "${FSL_PREFIX}"
 RUN curl -L -s "${FSL_URI}" | tar -C "${FSL_PREFIX}" -xzf - \
   --strip-components=1
 
-# install dcm2niix
-ARG D2N_PREFIX="/sw/apps/dcm2niix"
-ARG D2N_URI="https://github.com/rordenlab/dcm2niix/releases/download/v1.0.20260724/dcm2niix_lnx.zip"
-RUN dnf install -y unzip
-RUN mkdir -p "${D2N_PREFIX}"
-RUN curl -sL "${D2N_URI}" -o "/tmp/dcm2niix_lnx.zip"
-WORKDIR "${D2N_PREFIX}"
-RUN unzip "/tmp/dcm2niix_lnx.zip"
-RUN rm "/tmp/dcm2niix_lnx.zip"
-
 # install boldqc
 ARG BQC_PREFIX="/sw/apps/boldqc"
-ARG BQC_VERSION="0.7.0"
+ARG BQC_VERSION="0.7.1"
 RUN dnf install -y compat-openssl10 redhat-lsb-core
 RUN mkdir -p "${BQC_PREFIX}"
 ENV PIPENV_VENV_IN_PROJECT=1
 WORKDIR "${BQC_PREFIX}"
 RUN pipenv install boldqc=="${BQC_VERSION}"
 ENV PIPENV_PIPFILE="${BQC_PREFIX}/Pipfile"
+
+# install dcm2niix
+ARG DN2_PREFIX="/sw/apps/dcm2niix"
+ARG DN2_VERSION="v1.0.20260724"
+ARG DN2_URI="https://github.com/rordenlab/dcm2niix"
+WORKDIR "${DN2_PREFIX}"
+RUN dnf install -y gcc-c++
+RUN git clone -b "${DN2_VERSION}" --single-branch "${DN2_URI}" . && \
+  cd "console" && \
+  make
 
 # fsl environment
 ENV FSLDIR="${FSL_PREFIX}"
@@ -53,7 +53,7 @@ ENV FSLGECUDAQ="cuda.q" \
 ENV PATH="${FSLDIR}/bin:${PATH}"
 
 # dcm2niix environment
-ENV PATH="${D2N_PREFIX}:${PATH}"
+ENV PATH="${DN2_PREFIX}/console:${PATH}"
 
 # configure entrypoint
 WORKDIR /sw/apps/boldqc
