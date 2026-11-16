@@ -15,7 +15,7 @@ used to automatically download your [BOLD][] scans from your [XNAT][]
 installation, and seamlessly convert them to [BIDS][]
 
 ```bash
-singularity run --pwd /sw/apps/boldqc boldqc.sif \
+singularity run boldqc.sif \
     get \
     --xnat-alias ${XNAT} \
     --label ${XNAT_SESSION_LABEL} \

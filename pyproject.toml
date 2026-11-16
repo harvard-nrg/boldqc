@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "BOLDQC"
+version = "v0.7.1-1"
+dependencies = [
+    "selfie",
+    "executors",
+    "yaxil >= 0.10.0",
+    "matplotlib",
+    "nibabel ~= 4.0.0",
+    "numpy < 2.0",
+    "scipy"
+]
+requires-python = ">= 3.6.8"
+
+[project.scripts]
+"boldQC.py" = "boldqc.cli.boldqc:main"
+
+[project.optional-dependencies]
+docs = [
+    "mkdocs",
+    "mkdocs-material"
+]
+
+[tool.hatch.build]
+packages = [
+    "boldqc",
+    "boldqc.cli",
+    "boldqc.bids",
+    "boldqc.tasks",
+    "boldqc.parsers",
+    "boldqc.state",
+    "boldqc.xnat"
+]

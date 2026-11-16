@@ -1,20 +1,24 @@
 FROM rockylinux:8
 
+# upgrade certificates
+RUN dnf upgrade -y ca-certificates
+
 # install useful (but not entirely necessary) things
 RUN dnf install -y git vim
 
 # install some needed things
-RUN dnf install -y python3 python3-devel
+RUN dnf install -y python3.12
 
 # set python to python3
-RUN alternatives --set python /usr/bin/python3
+RUN alternatives --set python /usr/bin/python3.12
+RUN python3 -m ensurepip --default-pip
 
 # install pipenv
-RUN pip3 install pipenv==2021.5.29
+RUN pip install "certifi>=2026.10.19" "pip>=26.2.2"
 
 # install fsl
 ARG FSL_PREFIX="/sw/apps/fsl/"
-ARG FSL_URI="https://www.dropbox.com/s/p8go1t8kcoe41pz/fsl-6.0.4-centos7_64.tar.gz?dl=0"
+ARG FSL_URI="https://www.dropbox.com/scl/fi/3q2292enpxh5guy0rywsu/fsl-6.0.4-centos7_64.tar.gz?rlkey=eahcgw5uw3zdqyv8nns9gpkpn&st=g7haorvl&dl=1"
 RUN dnf install -y libquadmath
 RUN mkdir -p "${FSL_PREFIX}"
 RUN curl -L -s "${FSL_URI}" | tar -C "${FSL_PREFIX}" -xzf - \
@@ -22,13 +26,12 @@ RUN curl -L -s "${FSL_URI}" | tar -C "${FSL_PREFIX}" -xzf - \
 
 # install boldqc
 ARG BQC_PREFIX="/sw/apps/boldqc"
-ARG BQC_VERSION="0.7.1"
 RUN dnf install -y compat-openssl10 redhat-lsb-core
 RUN mkdir -p "${BQC_PREFIX}"
-ENV PIPENV_VENV_IN_PROJECT=1
+COPY . "${BQC_PREFIX}"
 WORKDIR "${BQC_PREFIX}"
-RUN pipenv install boldqc=="${BQC_VERSION}"
-ENV PIPENV_PIPFILE="${BQC_PREFIX}/Pipfile"
+RUN python3 -m venv .venv
+RUN .venv/bin/pip install .
 
 # install dcm2niix
 ARG DN2_PREFIX="/sw/apps/dcm2niix"
@@ -55,7 +58,9 @@ ENV PATH="${FSLDIR}/bin:${PATH}"
 # dcm2niix environment
 ENV PATH="${DN2_PREFIX}/console:${PATH}"
 
+# boldqc environment
+ENV PATH="${BQC_PREFIX}/.venv/bin:${PATH}"
+
 # configure entrypoint
-WORKDIR /sw/apps/boldqc
-ENTRYPOINT ["pipenv", "run", "boldQC.py"]
+ENTRYPOINT ["boldQC.py"]
 
